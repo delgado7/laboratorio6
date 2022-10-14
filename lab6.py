@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from os import walk
 import os
+import time
+import shutil
 
 white = [255, 255, 255]
 black = [0, 0, 0]
@@ -10,7 +12,7 @@ def getImageFiles(path):
 
     filenames = next(walk(path))[2]
 
-    imagefiles = [path+f for f in filenames if (f.endswith(".jpg") or f.endswith(".png"))]
+    imagefiles = [path+f for f in filenames if (f.endswith(".jpg") or f.endswith(".png") or f.endswith(".jpeg"))]
 
     return imagefiles
 
@@ -156,8 +158,8 @@ def main():
     dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
 
     for d in dirs:
-        if not os.path.exists(d):
-            os.makedirs(d)
+        shutil.rmtree(d)
+        os.makedirs(d)
 
     processSamples(0)
     processSamples(1)
