@@ -151,7 +151,6 @@ def processSamples(groupId):
             moveB += move
 
 
-
 def main():
 
     dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
@@ -163,72 +162,6 @@ def main():
     processSamples(0)
     processSamples(1)
     
-
-            
-    """
-    ancho = 750
-    alto = int(ancho * 1.414)
-
-    src = cv2.resize(src, (ancho, alto))
-    #src = cv2.GaussianBlur(src, (3, 3), 0)
-    src_gray = cv2.cvtColor(src, cv2.COLOR_BGR2GRAY)
-    dst = cv2.Laplacian(src_gray, cv2.CV_16S, ksize=3)
-    abs_dst = cv2.convertScaleAbs(dst)
-
-    (h, w) = abs_dst.shape[:2]
-
-    #(cX, cY) = (w // 2, h // 2)
-
-    #M = cv2.getRotationMatrix2D((cX, cY), 0, 1.0)
-    #rotated = cv2.warpAffine(abs_dst, M, (w, h))
-    
-    cv2.imshow("as", abs_dst)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-    x1 = scanner(abs_dst, 0, ancho)
-    x2 = scannerRL(abs_dst, 0, ancho)
-
-    abs_dst = abs_dst[0:h, x1:x2]
-    cv2.imshow("as", abs_dst)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-    print("s")
-
-    (h, w) = abs_dst.shape[:2]
-    y1 = scannerRL(abs_dst, 1, w)
-
-    print(y1)
-
-    (h, w) = abs_dst.shape[:2]
-    abs_dst = abs_dst[0:y1, 0:w]
-    cv2.imshow("as", abs_dst)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    
-    minus = 0
-    for l in range(2):
-        (h, w) = abs_dst.shape[:2]
-        #k = abs_dst[w-int(7)-minus:h-minus, 0:w]
-        k = abs_dst[w-int(54)-minus:h-minus, 0:w]
-        cv2.imshow("as", k)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        minus += (h//2 + 20)
-    
-    
-
-    (h, w) = abs_dst.shape[:2]
-    print(h, w)
-    k = abs_dst[h-700:h, 0:w]
-    cv2.imshow("as", k)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
-    
-    """
     return
 
 
