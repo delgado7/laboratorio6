@@ -1,7 +1,7 @@
 import cv2
-import time
 import numpy as np
 from os import walk
+import os
 
 white = [255, 255, 255]
 black = [0, 0, 0]
@@ -14,107 +14,6 @@ def getImageFiles(path):
 
     return imagefiles
 
-def paintVerticals(image, x:int, color:list):
-    (h, _) = image.shape[:2]
-    
-    for y in range(h):
-        #print(image[y,x])
-        image[y, x] = color
-
-    return image
-
-def paintHorizontals(image, y:int, color:list):
-    (_, w) = image.shape[:2]
-    
-    for x in range(w):
-        #print(image[y,x])
-        image[y, x] = color
-
-    return image
-
-def vectorsAreEqual(v1, v2):
-    print(v1, v2)
-    return v1[0] == v2[0] and v1[1] == v2[1] and v1[2] == v2[2]
-
-
-def scanner(image, direction:int, ancho:int):
-    # 0 = scan horizontal ->
-    # 1 = scan vertical v
-
-    (imgH, imgW) = image.shape[:2]
-
-    whitePixelCount:int = 0
-    foundX = 0
-
-    if(direction == 0):
-        scanResult = np.zeros((imgH, 1, 3), np.uint8)
-        for x in range(imgW):
-            whitePixelCount = 0
-            for y in range(imgH):
-                if(image[y, x] == 255):
-                    whitePixelCount += 1
-                scanResult[y, 0] = image[y, x]
-            if(whitePixelCount > 100):
-                image = paintVerticals(image, x, 150)
-                foundX = x
-                print("found x: "+str(x))
-                break
-            #print("scan in x: "+str(x)+" with "+str(whitePixelCount)+" white pixels")
-    else:
-        scanResult = np.zeros((1, imgH, 3), np.uint8)
-        for y in range(imgH):
-            whitePixelCount = 0
-            for x in range(imgW):
-                if(image[y, x] == 255):
-                    whitePixelCount += 1
-                scanResult[0, x] = image[y, x]
-            if(whitePixelCount > ancho*0.85):
-                print(ancho*0.85)
-                image = paintHorizontals(image, y, 50)
-                foundX = y
-                print("found y: "+str(x))
-                break
-
-
-    return foundX
-
-def scannerRL(image, direction:int, ancho:int):
-    # 0 = scan horizontal ->
-    # 1 = scan vertical v
-
-    (imgH, imgW) = image.shape[:2]
-
-    whitePixelCount:int = 0
-
-    if(direction == 0):
-        scanResult = np.zeros((imgH, 1, 3), np.uint8)
-        for x in range(imgW-1, -1, -1):
-            whitePixelCount = 0
-            for y in range(imgH-1,-1,-1):
-                if(image[y, x] == 255):
-                    whitePixelCount += 1
-                scanResult[y, 0] = image[y, x]
-            if(whitePixelCount > 100):
-                image = paintVerticals(image, x, 150)
-                foundX = x
-                break
-    else:
-        scanResult = np.zeros((1, imgH, 3), np.uint8)
-        for y in range(imgH-1,-1,-1):
-            whitePixelCount = 0
-            for x in range(imgW-1,-1,-1):
-                if(image[y, x] == 255):
-                    whitePixelCount += 1
-                scanResult[0, x] = image[y, x]
-            if(whitePixelCount > 100):
-                image = paintHorizontals(image, y, 50)
-                foundX = y
-                print("found y: "+str(x))
-                break
-            #print("scan in x: "+str(x)+" with "+str(whitePixelCount)+" white pixels")
-            
-
-    return foundX
 
 def saveImage(image, path, name):
     #print("saving image: ",path,name)
@@ -181,7 +80,7 @@ def preprocessing(img):
     (h, w) = img.shape[:2]
 
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img = cv2.GaussianBlur(img[4:h-4, 4:w-4], (3,3), cv2.BORDER_DEFAULT)
+    img = cv2.GaussianBlur(img[0:h, 4:w-4], (3,3), cv2.BORDER_DEFAULT)
     _ , img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_TRIANGLE)
 
     img, l = fillBlackLines(img, 0, 0)
@@ -194,29 +93,18 @@ def preprocessing(img):
 
     return img_dilation
 
+zeroesPath = "./results/zeroes/"
+onesPath = "./results/ones/"
+twosPath = "./results/twos/"
+threesPath = "./results/threes/"
+foursPath = "./results/fours/"
+fivesPath = "./results/fives/"
+sixesPath = "./results/sixes/"
+sevensPath = "./results/sevens/"
+eightsPath = "./results/eights/"
+ninesPath = "./results/nines/"
+
 def processSamples(groupId):
-
-    amount0 = 0
-    amount1 = 0
-    amount2 = 0
-    amount3 = 0
-    amount4 = 0
-    amount5 = 0
-    amount6 = 0
-    amount7 = 0
-    amount8 = 0
-    amount9 = 0
-
-    zeroesPath = "./results/zeroes/"
-    onesPath = "./results/ones/"
-    twosPath = "./results/twos/"
-    threesPath = "./results/threes/"
-    foursPath = "./results/fours/"
-    fivesPath = "./results/fives/"
-    sixesPath = "./results/sixes/"
-    sevensPath = "./results/sevens/"
-    eightsPath = "./results/eights/"
-    ninesPath = "./results/nines/"
 
     groupA = []
     groupB = []
@@ -230,8 +118,8 @@ def processSamples(groupId):
     groupAPaths = [zeroesPath, onesPath, twosPath, threesPath, foursPath]
     groupBPaths = [fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
 
-    groupACounts = [amount0, amount1, amount2, amount3, amount4]
-    groupBCounts = [amount5, amount6, amount7, amount8, amount9]
+    groupACounts = [0 for i in range(5)]
+    groupBCounts = [0 for i in range(5)]
 
 
     groupPaths = [groupAPaths, groupBPaths]
@@ -247,7 +135,6 @@ def processSamples(groupId):
 
         src = cv2.resize(src, (ancho, alto))
 
-
         (h,w) = src.shape[:2]
 
         moveB = 0
@@ -262,7 +149,16 @@ def processSamples(groupId):
             #print(groupACounts[l], " ", groupAPaths[l])
             excessB += excess
             moveB += move
+
+
+
 def main():
+
+    dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
+
+    for d in dirs:
+        if not os.path.exists(d):
+            os.makedirs(d)
 
     processSamples(0)
     processSamples(1)
