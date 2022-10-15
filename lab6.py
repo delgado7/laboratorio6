@@ -4,6 +4,8 @@ from os import walk
 import os
 import time
 import shutil
+import math
+from matplotlib import pyplot as plt
 
 white = [255, 255, 255]
 black = [0, 0, 0]
@@ -106,6 +108,28 @@ sevensPath = "./results/sevens/"
 eightsPath = "./results/eights/"
 ninesPath = "./results/nines/"
 
+vZeroesPath = "./barGraphs/zeroes/vertical"
+vOnesPath = "./barGraphs/ones/vertical"
+vTwosPath = "./barGraphs/twos/vertical"
+vThreesPath = "./barGraphs/threes/vertical"
+vFoursPath = "./barGraphs/fours/vertical"
+vFivesPath = "./barGraphs/fives/vertical"
+vSixesPath = "./barGraphs/sixes/vertical"
+vSevensPath = "./barGraphs/sevens/vertical"
+vEightsPath = "./barGraphs/eights/vertical"
+vNinesPath = "./barGraphs/nines/vertical"
+
+hZeroesPath = "./barGraphs/zeroes/horizontal"
+hOnesPath = "./barGraphs/ones/horizontal"
+hTwosPath = "./barGraphs/twos/horizontal"
+hThreesPath = "./barGraphs/threes/horizontal"
+hFoursPath = "./barGraphs/fours/horizontal"
+hFivesPath = "./barGraphs/fives/horizontal"
+hSixesPath = "./barGraphs/sixes/horizontal"
+hSevensPath = "./barGraphs/sevens/horizontal"
+hEightsPath = "./barGraphs/eights/horizontal"
+hNinesPath = "./barGraphs/nines/horizontal"
+
 def processSamples(groupId):
 
     groupA = []
@@ -152,10 +176,80 @@ def processSamples(groupId):
             excessB += excess
             moveB += move
 
+def verticalHistogram(image, clusterQuantity):
+
+    height, width = image.shape
+    histogram = np.zeros(clusterQuantity)
+
+    for i in range(0, height):
+        currentCluster = 0
+
+        for j in range(0, width):
+            if j%4==0 and j!=0:
+                currentCluster += 1
+            
+            if image[i][j] == 0:
+                histogram[currentCluster] += 1
+            
+    return histogram
+
+def horizontalHistogram(image, clusterQuantity):
+
+    height, width = image.shape
+    histogram = np.zeros(clusterQuantity)
+
+    currentCluster = 0
+    for i in range(0, height):
+        if i%4==0 and i!=0:
+            currentCluster += 1
+
+        for j in range(0, width):
+            if image[i][j] == 0:
+                histogram[currentCluster] += 1
+            
+    return histogram
+
+def saveHistogram(valuesRange, histogram, type, currentNumber, id):
+
+    numberNames = ["zeroes", "ones", "twos", "threes", "fours", "fives", "sixes", "sevens", "eights", "nines"]
+
+    plt.gcf().clear() 
+    plt.bar(valuesRange, histogram)
+    plt.xticks(valuesRange)
+
+    if type == 0:
+        plt.savefig("./barGraphs/"+str(numberNames[currentNumber])+"/vertical/"+str(id)+".png")
+    elif type == 1:
+        plt.savefig("./barGraphs/"+str(numberNames[currentNumber])+"/horizontal/"+str(id)+".png")
+
+def getHistograms():
+    paths = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
+    pathsCounter = [i for i in range(10)]
+
+    currentNumber = 0
+
+    for path in paths:
+        print(os.listdir(zeroesPath))
+        for file in os.listdir(path):
+            image = cv2.imread(path+file, cv2.IMREAD_GRAYSCALE)
+
+            height, width = image.shape
+
+            vClusterQuantity = math.ceil(width/4)
+            hClusterQuantity = math.ceil(height/4)
+
+            verticalHist = verticalHistogram(image, vClusterQuantity)
+            horizontalHist = horizontalHistogram(image, hClusterQuantity)
+
+            saveHistogram(range(vClusterQuantity), verticalHist, 0, currentNumber, pathsCounter[currentNumber])
+            saveHistogram(range(hClusterQuantity), horizontalHist, 1, currentNumber, pathsCounter[currentNumber])
+            pathsCounter[currentNumber]+=1
+        
+        currentNumber+=1
 
 def main():
 
-    dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
+    dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, vZeroesPath, vOnesPath, vTwosPath, vThreesPath, vFoursPath, vFivesPath, vSixesPath, vSevensPath, vEightsPath, vNinesPath, hZeroesPath, hOnesPath, hTwosPath, hThreesPath, hFoursPath, hFivesPath, hSixesPath, hSevensPath, hEightsPath, hNinesPath]
 
     for d in dirs:
         shutil.rmtree(d)
@@ -164,6 +258,8 @@ def main():
     processSamples(0)
     processSamples(1)
     
+    getHistograms()
+
     return
 
 
