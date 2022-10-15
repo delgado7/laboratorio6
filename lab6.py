@@ -107,9 +107,11 @@ def preprocessing(img):
     img = whitePadding(img, 5)
 
     kernel = np.ones((3,3), np.uint8)
-    img_dilation = cv2.dilate(img, kernel, iterations=1)
+    closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
+    #img_dilation = cv2.dilate(img, kernel, iterations=1)
+    
 
-    return img_dilation
+    return closing
 
 
 def showImage(image, name):
