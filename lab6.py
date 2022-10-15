@@ -104,7 +104,7 @@ def preprocessing(img):
     img, l = fillBlackLines(img, 0, 0)
     #img_dilation, _ = fillBlackLines(img_dilation, 1, l)
 
-    img = whitePadding(img, 5)
+    img = whitePadding(img, 3)
 
     kernel = np.ones((3,3), np.uint8)
     closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
