@@ -103,9 +103,9 @@ def preprocessing(img):
     _ , img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_TRIANGLE)
 
     img, l = fillBlackLines(img, 0, 0)
-    img, _ = fillBlackLines(img, 1, l)
+    #img, _ = fillBlackLines(img, 1, l)
 
-    img = whitePadding(img, 4)
+    img = whitePadding(img, 5)
 
     kernel = np.ones((3,3), np.uint8)
     closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
@@ -161,7 +161,8 @@ def processSamples(groupId):
         for l in range(5):
             bef = moveB+excessB
             crop_img = src[bef: bef + move, 0:w]
-            
+            #if(l==1 and groupId==1):
+                #showImage(crop_img, "crop")
             #showImage(crop_img, "crop")
             groupCounts[groupId][l] = extractIndividualNumbers(crop_img, groupPaths[groupId][l], groupCounts[groupId][l])
             #print(groupACounts[l], " ", groupAPaths[l])
