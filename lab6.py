@@ -51,10 +51,11 @@ def extractIndividualNumbers(image, path, counter):
         add = 0
         for x in range(0,w,stepW):
             crop_img = resized[y:y+stepH, x+add:x+stepW+add]
-
+            
             crop_img = preprocessing(crop_img)
             crop_img = center(crop_img)
             saveImage(crop_img, path, counter)
+            
             counter += 1
             index+=1
 
@@ -102,9 +103,9 @@ def preprocessing(img):
     _ , img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_TRIANGLE)
 
     img, l = fillBlackLines(img, 0, 0)
-    #img_dilation, _ = fillBlackLines(img_dilation, 1, l)
+    img, _ = fillBlackLines(img, 1, l)
 
-    img = whitePadding(img, 3)
+    img = whitePadding(img, 4)
 
     kernel = np.ones((3,3), np.uint8)
     closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
@@ -160,6 +161,7 @@ def processSamples(groupId):
         for l in range(5):
             bef = moveB+excessB
             crop_img = src[bef: bef + move, 0:w]
+            
             #showImage(crop_img, "crop")
             groupCounts[groupId][l] = extractIndividualNumbers(crop_img, groupPaths[groupId][l], groupCounts[groupId][l])
             #print(groupACounts[l], " ", groupAPaths[l])
