@@ -21,27 +21,7 @@ sevensPath = "./results/sevens/"
 eightsPath = "./results/eights/"
 ninesPath = "./results/nines/"
 
-vZeroesPath = "./barGraphs/zeroes/vertical"
-vOnesPath = "./barGraphs/ones/vertical"
-vTwosPath = "./barGraphs/twos/vertical"
-vThreesPath = "./barGraphs/threes/vertical"
-vFoursPath = "./barGraphs/fours/vertical"
-vFivesPath = "./barGraphs/fives/vertical"
-vSixesPath = "./barGraphs/sixes/vertical"
-vSevensPath = "./barGraphs/sevens/vertical"
-vEightsPath = "./barGraphs/eights/vertical"
-vNinesPath = "./barGraphs/nines/vertical"
-
-hZeroesPath = "./barGraphs/zeroes/horizontal"
-hOnesPath = "./barGraphs/ones/horizontal"
-hTwosPath = "./barGraphs/twos/horizontal"
-hThreesPath = "./barGraphs/threes/horizontal"
-hFoursPath = "./barGraphs/fours/horizontal"
-hFivesPath = "./barGraphs/fives/horizontal"
-hSixesPath = "./barGraphs/sixes/horizontal"
-hSevensPath = "./barGraphs/sevens/horizontal"
-hEightsPath = "./barGraphs/eights/horizontal"
-hNinesPath = "./barGraphs/nines/horizontal"
+graphsPath = "./barGraphs/"
 
 def getImageFiles(path):
 
@@ -217,43 +197,41 @@ def horizontalHistogram(image, clusterQuantity):
             
     return histogram
 
-def saveHistogram(valuesRange, histogram, type, currentNumber, id):
-
-    numberNames = ["zeroes", "ones", "twos", "threes", "fours", "fives", "sixes", "sevens", "eights", "nines"]
+def saveHistogram(valuesRange, histogram, currentNumber):
+    numberNames = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
 
     plt.gcf().clear() 
-    plt.bar(valuesRange, histogram)
-    plt.xticks(valuesRange)
+    plt.figure(figsize=(12, 5))
+    plt.bar(valuesRange, histogram, align="center")
+    plt.xticks(valuesRange, )
 
-    if type == 0:
-        plt.savefig("./barGraphs/"+str(numberNames[currentNumber])+"/vertical/"+str(id)+".png")
-    elif type == 1:
-        plt.savefig("./barGraphs/"+str(numberNames[currentNumber])+"/horizontal/"+str(id)+".png")
+    plt.xlabel("Cluster")
+    plt.ylabel("Pixel quantity")
 
-def getHistograms():
+    plt.savefig("./barGraphs/"+str(numberNames[currentNumber])+".png")
+
+def generateHistogram(image, currentNumber):
+    height, width = image.shape
+
+    vClusterQuantity = math.ceil(width/4)
+    hClusterQuantity = math.ceil(height/4)
+
+    verticalHist = verticalHistogram(image, vClusterQuantity)
+    horizontalHist = horizontalHistogram(image, hClusterQuantity)
+
+    histrogram = np.concatenate((verticalHist, horizontalHist))
+
+    saveHistogram(range(vClusterQuantity+hClusterQuantity), histrogram, currentNumber)
+
+def getBarGraphics():
     paths = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
-    pathsCounter = [i for i in range(10)]
 
-    currentNumber = 0
+    for i in range(10):
 
-    for path in paths:
-        #print(os.listdir(zeroesPath))
-        for file in os.listdir(path):
-            image = cv2.imread(path+file, cv2.IMREAD_GRAYSCALE)
+        imageName = os.listdir(paths[i])[0]
+        image = cv2.imread(paths[i]+imageName, cv2.IMREAD_GRAYSCALE)
 
-            height, width = image.shape
-
-            vClusterQuantity = math.ceil(width/4)
-            hClusterQuantity = math.ceil(height/4)
-
-            verticalHist = verticalHistogram(image, vClusterQuantity)
-            horizontalHist = horizontalHistogram(image, hClusterQuantity)
-
-            saveHistogram(range(vClusterQuantity), verticalHist, 0, currentNumber, pathsCounter[currentNumber])
-            saveHistogram(range(hClusterQuantity), horizontalHist, 1, currentNumber, pathsCounter[currentNumber])
-            pathsCounter[currentNumber]+=1
-        
-        currentNumber+=1
+        generateHistogram(image, i)
 
 def loadImage(path):
     image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
@@ -311,7 +289,7 @@ def center(image):
 
 def main():
 
-    dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, vZeroesPath, vOnesPath, vTwosPath, vThreesPath, vFoursPath, vFivesPath, vSixesPath, vSevensPath, vEightsPath, vNinesPath, hZeroesPath, hOnesPath, hTwosPath, hThreesPath, hFoursPath, hFivesPath, hSixesPath, hSevensPath, hEightsPath, hNinesPath]
+    dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, graphsPath]
 
     for d in dirs:
         if(os.path.exists(d)):
@@ -320,10 +298,9 @@ def main():
 
     processSamples(0)
     processSamples(1)
-    
-    #getHistograms()
+
+    getBarGraphics()
 
     return
-
 
 main()
