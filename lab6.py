@@ -37,7 +37,7 @@ def saveImage(image, path, name):
     cv2.imwrite(path+str(name)+".png", image)
 
 
-def extractIndividualNumbers(image, path, counter):
+def extractIndividualNumbers(image, path, counter, group, num):
         
     resized = cv2.resize(image, (1156, 216))
 
@@ -52,7 +52,7 @@ def extractIndividualNumbers(image, path, counter):
         for x in range(0,w,stepW):
             crop_img = resized[y:y+stepH, x+add:x+stepW+add]
             
-            crop_img = preprocessing(crop_img)
+            crop_img = preprocessing(crop_img, group, num)
             crop_img = center(crop_img)
             saveImage(crop_img, path, counter)
             
@@ -94,12 +94,21 @@ def whitePadding(image, quantity:int):
 
     return image
 
-def preprocessing(img):
+def preprocessing(img, group, number):
 
     (h, w) = img.shape[:2]
 
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img = cv2.GaussianBlur(img[0:h, 4:w-4], (3,3), cv2.BORDER_DEFAULT)
+
+    l = (3,3)
+
+    if(group == 0):
+        if(number == 4):
+            l = (5,5)
+    else:
+        if(number == 0):
+            l = (5,5)
+    img = cv2.GaussianBlur(img[0:h, 4:w-4], l, cv2.BORDER_DEFAULT)
     _ , img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_TRIANGLE)
 
     img, l = fillBlackLines(img, 0, 0)
@@ -110,9 +119,42 @@ def preprocessing(img):
     kernel = np.ones((3,3), np.uint8)
     closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
     #img_dilation = cv2.dilate(img, kernel, iterations=1)
+
+    img2 = cv2.bitwise_not(closing)
+    #showImage(img2, "og1")
     
 
-    return closing
+    #"showImage(img2, "og1")
+    
+
+    contoursL = cv2.findContours(img2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    #"print("cnt", contoursL)
+
+    contours = contoursL[0] if len(contoursL) == 2 else contoursL[1]
+    big_contour = max(contours, key=cv2.contourArea)
+    
+    
+    #print(big_contour)
+
+
+    # draw largest contour as white filled on black background as mask
+    (h2, w2) = img2.shape[:2]
+    mask = np.zeros((h2, w2), dtype=np.uint8)
+    #showImage(mask, "mask1")
+    cv2.drawContours(mask, [big_contour], 0, 255, -1)
+    #showImage(mask, "mask2")
+
+    # use mask to black all but largest contour
+    result = img.copy()
+    result[mask==0] = 255
+
+    result = cv2.dilate(result, kernel, iterations=1)
+    
+
+    return result
+
+    
 
 
 def showImage(image, name):
@@ -130,7 +172,8 @@ def processSamples(groupId):
     else:
         groupB = getImageFiles("./groupB/")
     
-
+    print(groupA)
+    print(groupB)
     groupAPaths = [zeroesPath, onesPath, twosPath, threesPath, foursPath]
     groupBPaths = [fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
 
@@ -163,8 +206,9 @@ def processSamples(groupId):
             crop_img = src[bef: bef + move, 0:w]
             #if(l==1 and groupId==1):
                 #showImage(crop_img, "crop")
-            #showImage(crop_img, "crop")
-            groupCounts[groupId][l] = extractIndividualNumbers(crop_img, groupPaths[groupId][l], groupCounts[groupId][l])
+            #kernel = np.ones((1,1), np.uint8)
+            #crop_img = cv2.morphologyEx(crop_img, cv2.MORPH_CLOSE, kernel)
+            groupCounts[groupId][l] = extractIndividualNumbers(crop_img, groupPaths[groupId][l], groupCounts[groupId][l], groupId, l)
             #print(groupACounts[l], " ", groupAPaths[l])
             excessB += excess
             moveB += move
@@ -281,14 +325,16 @@ def center(image):
 
     img_crp = image[upper:lower, left:right]
 
-    bordersize = 15
+    bordersize = 10
     img_crp = cv2.copyMakeBorder(img_crp,top=bordersize,bottom=bordersize,left=bordersize,right=bordersize,borderType=cv2.BORDER_CONSTANT,value=[255, 255, 255])
 
     img_crp = cv2.resize(img_crp, (60, 64))
-    _ , img_crp = cv2.threshold(img_crp, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_TRIANGLE)
+    img_crp = cv2.threshold(img_crp, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_TRIANGLE)[1]
 
-    kernel = np.ones((1,1), np.uint8)
-    img_crp = cv2.dilate(img_crp, kernel, iterations=1)
+    #img_crp = cv2.blur(img_crp,(5,5))
+
+    #kernel = np.ones((5,5), np.uint8)
+    #img_crp = cv2.dilate(img_crp, kernel, iterations=1)
 
     return img_crp
 
@@ -309,3 +355,72 @@ def main():
     return
 
 main()
+
+def fillBlackLines2(image, direction:int, lastY:int):
+    (h, w) = image.shape[:2]
+
+
+    
+    if (direction == 0):
+        for y in range(h):
+            if(max(image[y, 0:w]) == 0):
+                image[y, 0:w] = 255
+                lastY = y
+
+        for y in range(0,int(int(h*0.1))):
+            if(sum(image[y, 0:w])/255 < 0.25*w):
+                image[y, 0:w] = 255
+                lastY = y
+
+        for y in range(int(h*0.85), h):
+            if(sum(image[y, 0:w])/255 < 0.25*w):
+                image[y, 0:w] = 255
+                lastY = y
+
+    else:
+        for x in range(w):
+            k = lastY
+            k+=1
+            if(k < h):
+                if(max(image[k:h, x]) == 0):
+                    image[k:h, x] = 255
+
+        for x in range(0,int(w*0.25)):
+            if(sum(image[0:h, x])/255 < 0.10*h):
+                image[0:h, x] = 255
+
+        for x in range(int(w*0.75), w):
+            if(sum(image[0:h, x])/255 < 0.10*h):
+                image[0:h, x] = 255
+
+    return image, lastY
+
+def a(img):
+    img2 = cv2.bitwise_not(img)
+    #showImage(img2, "og1")
+    
+
+    #"showImage(img2, "og1")
+    
+
+    contoursL = cv2.findContours(img2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    #"print("cnt", contoursL)
+
+    contours = contoursL[0] if len(contoursL) == 2 else contoursL[1]
+    big_contour = max(contours, key=cv2.contourArea)
+    
+    
+    #print(big_contour)
+
+
+    # draw largest contour as white filled on black background as mask
+    (h2, w2) = img2.shape[:2]
+    mask = np.zeros((h2, w2), dtype=np.uint8)
+    #showImage(mask, "mask1")
+    cv2.drawContours(mask, [big_contour], 0, 255, -1)
+    #showImage(mask, "mask2")
+
+    # use mask to black all but largest contour
+    result = img.copy()
+    result[mask==0] = 255
