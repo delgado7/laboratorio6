@@ -1,3 +1,4 @@
+from xmlrpc.client import boolean
 import cv2
 import pathlib
 import math
@@ -64,31 +65,34 @@ def generateHistogram(image):
     return histogram
 
 def processNumbers(bottomLimit, topLimit):
-    grayImage = cv2.imread("./results/ones/1.png", cv2.IMREAD_GRAYSCALE)
+    grayImage = cv2.imread("./results/threes/400.png", cv2.IMREAD_GRAYSCALE)
 
     histogram = generateHistogram(grayImage)
 
-    isZero = numpy.logical_and(histogram >= bottomLimit[0], histogram <= topLimit[0])
-    isOne = numpy.logical_and(histogram >= bottomLimit[1], histogram <= topLimit[1])
-    isTwo = numpy.logical_and(histogram >= bottomLimit[2], histogram <= topLimit[2])
-    isThree = numpy.logical_and(histogram >= bottomLimit[3], histogram <= topLimit[3])
-    isFour = numpy.logical_and(histogram >= bottomLimit[4], histogram <= topLimit[4])
-    isFive = numpy.logical_and(histogram >= bottomLimit[5], histogram <= topLimit[5])
-    isSix = numpy.logical_and(histogram >= bottomLimit[6], histogram <= topLimit[6])
-    isSeven = numpy.logical_and(histogram >= bottomLimit[7], histogram <= topLimit[7])
-    isEight = numpy.logical_and(histogram >= bottomLimit[8], histogram <= topLimit[8])
-    isNine = numpy.logical_and(histogram >= bottomLimit[9], histogram <= topLimit[9])
+    falseValues = []
 
-    if isZero.all(): return 0
-    if isOne.all(): return 1
-    if isTwo.all(): return 2
-    if isThree.all(): return 3
-    if isFour.all(): return 4
-    if isFive.all(): return 5
-    if isSix.all(): return 6
-    if isSeven.all(): return 7
-    if isEight.all(): return 8
-    if isNine.all(): return 9
+    isZero = numpy.sort(numpy.logical_and(histogram >= bottomLimit[0], histogram <= topLimit[0]))
+    isOne = numpy.sort(numpy.logical_and(histogram >= bottomLimit[1], histogram <= topLimit[1]))
+    isTwo = numpy.sort(numpy.logical_and(histogram >= bottomLimit[2], histogram <= topLimit[2]))
+    isThree = numpy.sort(numpy.logical_and(histogram >= bottomLimit[3], histogram <= topLimit[3]))
+    isFour = numpy.sort(numpy.logical_and(histogram >= bottomLimit[4], histogram <= topLimit[4]))
+    isFive = numpy.sort(numpy.logical_and(histogram >= bottomLimit[5], histogram <= topLimit[5]))
+    isSix = numpy.sort(numpy.logical_and(histogram >= bottomLimit[6], histogram <= topLimit[6]))
+    isSeven = numpy.sort(numpy.logical_and(histogram >= bottomLimit[7], histogram <= topLimit[7]))
+    isEight = numpy.sort(numpy.logical_and(histogram >= bottomLimit[8], histogram <= topLimit[8]))
+    isNine = numpy.sort(numpy.logical_and(histogram >= bottomLimit[9], histogram <= topLimit[9]))
+
+    booleanValues = [isZero, isOne, isTwo, isThree, isFour, isFive, isSix, isSeven, isEight, isNine]
+
+    print(booleanValues)
+
+    for isNum in booleanValues:
+        _, counts = numpy.unique(isNum, return_counts=True)
+        falseValues.append(counts[0])
+
+    print(falseValues)
+
+    return falseValues.index(min(falseValues))
 
     
 def getModel(modelName):
@@ -109,8 +113,8 @@ def getTopLimits(model, scale):
 def main():
     model = getModel("modelo.txt")
 
-    bottomLimits = getBottomLimits(model, 2)
-    topLimits = getTopLimits(model, 2)
+    bottomLimits = getBottomLimits(model, 1.5)
+    topLimits = getTopLimits(model, 1.5)
 
     result = processNumbers(bottomLimits, topLimits)
 

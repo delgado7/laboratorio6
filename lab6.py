@@ -372,13 +372,13 @@ def seventy():
     for i in range(534):
         chosen = False
         while not chosen:
-            toBeAdded = random.choice(os.listdir("results\zeroes"))
+            toBeAdded = str(random.randint(0,764))+".png"
             if toBeAdded not in entries:
                 entries.append(toBeAdded)
                 chosen = True
     
     file = open("set_entrenamiento.txt", "w")
-    file.write(str())
+    file.write(str(entries))
     file.close()
 
 def main():
