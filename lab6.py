@@ -1,3 +1,4 @@
+from tokenize import group
 import cv2
 import numpy as np
 from os import walk
@@ -9,6 +10,11 @@ from matplotlib import pyplot as plt
 
 white = [255, 255, 255]
 black = [0, 0, 0]
+
+histograms = [[], [], [], [], [], [], [], [], [], []] # Lista que guardará el 70% de los histogramas por cada dígito
+
+meanVecs = [] # Lista que contiene todos los valores promedio tomando en ceanta el 70% de los histogramas
+varianceVecs = [] # Lista que contiene las varianzas de cada grupo de píxeles tomando en cuenta el 70% de los histogramas
 
 zeroesPath = "./results/zeroes/"
 onesPath = "./results/ones/"
@@ -32,17 +38,17 @@ def getImageFiles(path):
     return imagefiles
 
 
-def saveImage(image, path, name):
+def saveImage(image, path, name, num, group):
     #print("saving image: ",path,name)
+    histogram = generateHistogram(image)
+    histograms[5*group+num].append(histogram)
     cv2.imwrite(path+str(name)+".png", image)
 
 
 def extractIndividualNumbers(image, path, counter, group, num):
         
     resized = cv2.resize(image, (1156, 216))
-
     (h, w) = resized.shape[:2]
-
     stepW = w // 17
     stepH = h // 3
 
@@ -54,7 +60,7 @@ def extractIndividualNumbers(image, path, counter, group, num):
             
             crop_img = preprocessing(crop_img, group, num)
             crop_img = center(crop_img)
-            saveImage(crop_img, path, counter)
+            saveImage(crop_img, path, counter, num, group)
             
             counter += 1
             index+=1
@@ -154,9 +160,6 @@ def preprocessing(img, group, number):
 
     return result
 
-    
-
-
 def showImage(image, name):
     cv2.imshow(name, image)
     cv2.waitKey(0)
@@ -172,8 +175,8 @@ def processSamples(groupId):
     else:
         groupB = getImageFiles("./groupB/")
     
-    print(groupA)
-    print(groupB)
+    #print(groupA)
+    #print(groupB)
     groupAPaths = [zeroesPath, onesPath, twosPath, threesPath, foursPath]
     groupBPaths = [fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
 
@@ -259,7 +262,7 @@ def saveHistogram(valuesRange, histogram, currentNumber):
 
     plt.savefig("./barGraphs/"+str(numberNames[currentNumber])+".png")
 
-def generateHistogram(image, currentNumber):
+def generateHistogram(image):
     height, width = image.shape
 
     vClusterQuantity = math.ceil(width/4)
@@ -268,9 +271,9 @@ def generateHistogram(image, currentNumber):
     verticalHist = verticalHistogram(image, vClusterQuantity)
     horizontalHist = horizontalHistogram(image, hClusterQuantity)
 
-    histrogram = np.concatenate((verticalHist, horizontalHist))
+    histogram = np.concatenate((verticalHist, horizontalHist))
 
-    saveHistogram(range(vClusterQuantity+hClusterQuantity), histrogram, currentNumber)
+    return histogram
 
 def getBarGraphics():
     paths = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
@@ -280,7 +283,8 @@ def getBarGraphics():
         imageName = os.listdir(paths[i])[0]
         image = cv2.imread(paths[i]+imageName, cv2.IMREAD_GRAYSCALE)
 
-        generateHistogram(image, i)
+        histogram = generateHistogram(image)
+        saveHistogram(range(len(histogram)), histogram, i)
 
 def loadImage(path):
     image = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
@@ -338,6 +342,26 @@ def center(image):
 
     return img_crp
 
+# Función que procesa todos los histogramas de entrenamiento y calcula su media y varianza
+def getHistMeanVariance():
+    for i in range(10):
+        meanVec = np.array(histograms[i])
+        varianceVec = np.array(histograms[i])
+
+        meanVec = np.transpose(meanVec)
+        meanVec = np.mean(meanVec, 1)
+        meanVec = np.ndarray.tolist(meanVec)
+        meanVecs.append(meanVec)
+
+        varianceVec = np.transpose(varianceVec)
+        varianceVec = np.var(varianceVec, 1)
+        varianceVec = np.ndarray.tolist(varianceVec)
+        varianceVecs.append(varianceVec)
+
+    file = open("modelo.txt", "w")
+    file.write(str([meanVecs]+[varianceVecs]))
+    file.close()
+
 def main():
 
     dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, graphsPath]
@@ -352,15 +376,14 @@ def main():
 
     getBarGraphics()
 
+    getHistMeanVariance()
+
     return
 
 main()
 
 def fillBlackLines2(image, direction:int, lastY:int):
     (h, w) = image.shape[:2]
-
-
-    
     if (direction == 0):
         for y in range(h):
             if(max(image[y, 0:w]) == 0):
