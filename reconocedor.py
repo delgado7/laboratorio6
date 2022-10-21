@@ -4,6 +4,8 @@ import pathlib
 import math
 import numpy
 import ast
+import shutil
+import os, random
 
 path = "./results"
 
@@ -17,6 +19,10 @@ sixesPath = "./results/sixes/"
 sevensPath = "./results/sevens/"
 eightsPath = "./results/eights/"
 ninesPath = "./results/nines/"
+
+thirties = []
+
+dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
 
 def verticalHistogram(image, clusterQuantity):
 
@@ -65,35 +71,41 @@ def generateHistogram(image):
     return histogram
 
 def processNumbers(bottomLimit, topLimit):
-    grayImage = cv2.imread("./results/threes/400.png", cv2.IMREAD_GRAYSCALE)
 
-    histogram = generateHistogram(grayImage)
+    for route in dirs:
+        for num in thirties:
+            path = str(route+num)
+            grayImage = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
 
-    falseValues = []
+            histogram = generateHistogram(grayImage)
 
-    isZero = numpy.sort(numpy.logical_and(histogram >= bottomLimit[0], histogram <= topLimit[0]))
-    isOne = numpy.sort(numpy.logical_and(histogram >= bottomLimit[1], histogram <= topLimit[1]))
-    isTwo = numpy.sort(numpy.logical_and(histogram >= bottomLimit[2], histogram <= topLimit[2]))
-    isThree = numpy.sort(numpy.logical_and(histogram >= bottomLimit[3], histogram <= topLimit[3]))
-    isFour = numpy.sort(numpy.logical_and(histogram >= bottomLimit[4], histogram <= topLimit[4]))
-    isFive = numpy.sort(numpy.logical_and(histogram >= bottomLimit[5], histogram <= topLimit[5]))
-    isSix = numpy.sort(numpy.logical_and(histogram >= bottomLimit[6], histogram <= topLimit[6]))
-    isSeven = numpy.sort(numpy.logical_and(histogram >= bottomLimit[7], histogram <= topLimit[7]))
-    isEight = numpy.sort(numpy.logical_and(histogram >= bottomLimit[8], histogram <= topLimit[8]))
-    isNine = numpy.sort(numpy.logical_and(histogram >= bottomLimit[9], histogram <= topLimit[9]))
+            falseValues = []
+            booleanValues = []
 
-    booleanValues = [isZero, isOne, isTwo, isThree, isFour, isFive, isSix, isSeven, isEight, isNine]
+            for count in range(10):
+                booleanValues.append(numpy.sort(numpy.logical_and(histogram >= bottomLimit[count], histogram <= topLimit[count])))
 
-    print(booleanValues)
+            for isNum in booleanValues:
+                _, counts = numpy.unique(isNum, return_counts=True)
+                falseValues.append(counts[0])
 
-    for isNum in booleanValues:
-        _, counts = numpy.unique(isNum, return_counts=True)
-        falseValues.append(counts[0])
+            print("Image "+route+num+" is a "+str(falseValues.index(min(falseValues))))
+    
 
-    print(falseValues)
+def thirty():
+    file = open(r"set_entrenamiento.txt", "r")
+    training = file.readline()
+    file.close()
 
-    return falseValues.index(min(falseValues))
+    training = ast.literal_eval(training)
 
+    for i in range(230):
+        chosen = False
+        while not chosen:
+            toBeAdded = str(random.randint(0,764))+".png"
+            if toBeAdded not in training and toBeAdded not in thirties:
+                thirties.append(toBeAdded)
+                chosen = True 
     
 def getModel(modelName):
     file = open(modelName, "r")
@@ -111,14 +123,15 @@ def getTopLimits(model, scale):
     return model[0] + numpy.power(model[1], 1/2) * scale # model[0] = meanVec, model[1] = varianceVec
 
 def main():
+
     model = getModel("modelo.txt")
 
     bottomLimits = getBottomLimits(model, 1.5)
     topLimits = getTopLimits(model, 1.5)
 
-    result = processNumbers(bottomLimits, topLimits)
+    thirty()
 
-    print(result)
+    processNumbers(bottomLimits, topLimits)
 
 main()
 
