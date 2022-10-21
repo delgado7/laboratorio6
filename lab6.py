@@ -2,7 +2,7 @@ from tokenize import group
 import cv2
 import numpy as np
 from os import walk
-import os
+import os, random
 import time
 import shutil
 import math
@@ -29,6 +29,8 @@ ninesPath = "./results/nines/"
 
 graphsPath = "./barGraphs/"
 
+entries = []
+
 def getImageFiles(path):
 
     filenames = next(walk(path))[2]
@@ -40,9 +42,13 @@ def getImageFiles(path):
 
 def saveImage(image, path, name, num, group):
     #print("saving image: ",path,name)
-    histogram = generateHistogram(image)
-    histograms[5*group+num].append(histogram)
-    cv2.imwrite(path+str(name)+".png", image)
+    imageName = str(name)+".png"
+
+    if imageName in entries:
+        histogram = generateHistogram(image)
+        histograms[5*group+num].append(histogram)
+    
+    cv2.imwrite(path+imageName, image)
 
 
 def extractIndividualNumbers(image, path, counter, group, num):
@@ -362,6 +368,19 @@ def getHistMeanVariance():
     file.write(str([meanVecs]+[varianceVecs]))
     file.close()
 
+def seventy():
+    for i in range(534):
+        chosen = False
+        while not chosen:
+            toBeAdded = random.choice(os.listdir("results\zeroes"))
+            if toBeAdded not in entries:
+                entries.append(toBeAdded)
+                chosen = True
+    
+    file = open("set_entrenamiento.txt", "w")
+    file.write(str())
+    file.close()
+
 def main():
 
     dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, graphsPath]
@@ -370,6 +389,8 @@ def main():
         if(os.path.exists(d)):
             shutil.rmtree(d)
         os.makedirs(d)
+
+    seventy()
 
     processSamples(0)
     processSamples(1)
