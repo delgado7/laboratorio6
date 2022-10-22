@@ -72,8 +72,13 @@ def generateHistogram(image):
 
 def processNumbers(bottomLimit, topLimit):
 
+    realCounters = numpy.zeros((10))
+    predictedCounters = numpy.zeros((10))
+
     for route in dirs:
         for num in thirties:
+            realCounters[dirs.index(route)] += 1
+
             path = str(route+num)
             grayImage = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
 
@@ -89,7 +94,10 @@ def processNumbers(bottomLimit, topLimit):
                 _, counts = numpy.unique(isNum, return_counts=True)
                 falseValues.append(counts[0])
 
-            print("Image "+route+num+" is a "+str(falseValues.index(min(falseValues))))
+            if dirs.index(route) == falseValues.index(min(falseValues)): predictedCounters[dirs.index(route)] += 1
+    
+    print(realCounters)
+    print(predictedCounters)
     
 
 def thirty():
@@ -126,8 +134,8 @@ def main():
 
     model = getModel("modelo.txt")
 
-    bottomLimits = getBottomLimits(model, 1.5)
-    topLimits = getTopLimits(model, 1.5)
+    bottomLimits = getBottomLimits(model, 0.95)
+    topLimits = getTopLimits(model, 0.95)
 
     thirty()
 
