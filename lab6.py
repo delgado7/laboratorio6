@@ -16,6 +16,8 @@ histograms = [[], [], [], [], [], [], [], [], [], []] # Lista que guardará el 7
 meanVecs = [] # Lista que contiene todos los valores promedio tomando en ceanta el 70% de los histogramas
 varianceVecs = [] # Lista que contiene las varianzas de cada grupo de píxeles tomando en cuenta el 70% de los histogramas
 
+HuMoments = []
+
 zeroesPath = "./results/zeroes/"
 onesPath = "./results/ones/"
 twosPath = "./results/twos/"
@@ -66,6 +68,12 @@ def extractIndividualNumbers(image, path, counter, group, num):
             
             crop_img = preprocessing(crop_img, group, num)
             crop_img = center(crop_img)
+            crop_img = cv2.bitwise_not(crop_img)
+
+            kernel = np.ones((3,3), np.uint8)
+            #crop_img = cv2.morphologyEx(crop_img, cv2.MORPH_CLOSE, kernel)
+            crop_img = cv2.erode(crop_img, kernel, iterations=1)
+
             saveImage(crop_img, path, counter, num, group)
             
             counter += 1
@@ -381,9 +389,220 @@ def seventy():
     file.write(str(entries))
     file.close()
 
+def getHuMoments():
+    paths = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
+    
+    for i in range(10):
+
+        imageName = os.listdir(paths[i])[0]
+        image = cv2.imread(paths[i]+imageName, cv2.IMREAD_GRAYSCALE)
+
+        moments = cv2.moments(image)
+        huMoments = cv2.HuMoments(moments)
+        
+        for s in range(0,7):
+            huMoments[s] = round(-1* math.copysign(1.0, huMoments[s]) * math.log10(abs(huMoments[s])), 6)
+
+        getHuMomentsVariations(image, huMoments, i)
+        
+        HuMoments.append(huMoments.flatten())
+
+
+    plt.clf()
+    row_headers = ["Dígito: {0}".format(i) for i in range(10)]
+    column_headers = ["H[{0}]".format(i) for i in range(7)]
+
+    rcolors = plt.cm.BuPu(np.full(len(row_headers), 0.1))
+    ccolors = plt.cm.BuPu(np.full(len(column_headers), 0.1))
+    
+    the_table = plt.table(cellText=HuMoments,
+                        rowLabels=row_headers,
+                        rowColours=rcolors,
+                        rowLoc='right',
+                        colColours=ccolors,
+                        colLabels=column_headers,
+                        loc='center')
+
+    the_table.auto_set_font_size(False)
+    the_table.set_fontsize(6)
+    plt.axis('off')
+    plt.savefig("./HuMoments"+".png", dpi=400)
+    #plt.show()
+
+
+def getHuMomentsVariations(image, huMomentsImage, i):
+    plt.clf()
+    row_headers = ["Original", "Rotación", "Desplazamiento", "Amplificada", "Reducida"]
+    column_headers = ["H[{0}]".format(i) for i in range(7)]
+
+    huMomentsVariation = []
+    huMomentsVariation.append(huMomentsImage.flatten())
+
+    a = complex(1.3, 0)
+    b = complex(0,0)
+    img_amplificada = transform(image, a, b)
+    #cv2.imwrite("./amplificada{0}.png".format(i), img_amplificada)
+
+    img_amplificada = cv2.cvtColor(img_amplificada, cv2.COLOR_BGR2GRAY)
+    moments = cv2.moments(img_amplificada)
+    huMoments = cv2.HuMoments(moments)
+    huMomentsVariation.append(getMoments(huMoments).flatten())
+    
+    a = complex(0.6, 0)
+    img_disminuida = transform(image, a, b)
+    #cv2.imwrite("./disminuida{0}.png".format(i), img_disminuida)
+
+    img_disminuida = cv2.cvtColor(img_disminuida, cv2.COLOR_BGR2GRAY)
+    moments = cv2.moments(img_disminuida)
+    huMoments = cv2.HuMoments(moments)
+    huMomentsVariation.append(getMoments(huMoments).flatten())
+
+
+    a = complex(0.8, 0.6)
+    b = complex(0, 0)
+    img_rotada = transform(image, a, b)
+    #cv2.imwrite("./rotada{0}.png".format(i), img_rotada)
+
+    img_rotada = cv2.cvtColor(img_rotada, cv2.COLOR_BGR2GRAY)
+    moments = cv2.moments(img_rotada)
+    huMoments = cv2.HuMoments(moments)
+    huMomentsVariation.append(getMoments(huMoments).flatten())
+
+
+    a = complex(1, 0)
+    b = complex(8, 8)
+    img_desplazada = transform(image, a, b)
+    #cv2.imwrite("./desplazada{0}.png".format(i), img_desplazada)
+
+    img_desplazada = cv2.cvtColor(img_desplazada, cv2.COLOR_BGR2GRAY)
+    moments = cv2.moments(img_desplazada)
+    huMoments = cv2.HuMoments(moments)
+    huMomentsVariation.append(getMoments(huMoments).flatten())
+    
+
+    rcolors = plt.cm.BuPu(np.full(len(row_headers), 0.1))
+    ccolors = plt.cm.BuPu(np.full(len(column_headers), 0.1))
+    
+    the_table = plt.table(cellText=huMomentsVariation,
+                        rowLabels=row_headers,
+                        rowColours=rcolors,
+                        rowLoc='right',
+                        colColours=ccolors,
+                        colLabels=column_headers,
+                        loc='center left')
+
+    the_table.auto_set_font_size(False)
+    the_table.set_fontsize(6)
+    plt.axis('off')
+    plt.savefig("./HuMomentsVariation{0}".format(i) + ".png", dpi=400)
+    
+
+def getMoments(huMoments):
+    for s in range(0,7):
+        huMoments[s] = round(-1* math.copysign(1.0, huMoments[s]) * math.log10(abs(huMoments[s])), 6)
+    return huMoments
+
+
+"""         MAPEO       """
+
+
+def pixelToPlane(h,w,x,y):
+    return (x - w//2, h//2-y)
+
+def planeToPixel(h,w,x,y):
+    return (int(x + w//2), int(h//2-y))
+
+def bilinearMap(a, b, c, d, z):
+    w = (a*z + b) / (c*z + d) 
+    return w
+
+def inverseMapping(a, b, c, d, w):
+    z1 = (-d*w+b)/(c*w-a)
+    return z1
+
+def bilinearMappingImg(image, a, b, c, d):
+
+    #(ZPlaneW, ZplaneH, ZplaneXOffset, ZplaneYOffset) = getMapDimensions(image, a, b, c, d, 0)
+    
+    (h, w) = image.shape[:2]
+
+    (planeWHeight, planeWWidth) = (h, w)
+
+    planeW = np.zeros((planeWHeight, planeWWidth, 3), np.uint8)
+
+    for y in range(0, h):
+        for x in range(0, w):
+
+            (planarX, planarY) = pixelToPlane(h,w,x,y)
+
+            mapped = bilinearMap(a, b, c, d, complex(planarX, planarY))
+
+            realPartFromPoint = int(mapped.real)
+            imagPartFromPoint = int(mapped.imag)
+
+            (newImageX, newImageY) = planeToPixel(planeWHeight,planeWWidth,realPartFromPoint,imagPartFromPoint)
+
+            
+
+            if (newImageX >= 0 and newImageX < planeWWidth and newImageY >= 0 and newImageY < planeWHeight):
+                """
+                print(x,y)
+                print(mapped)
+                print(newImageX, newImageY)
+                """
+                imagePixel = image[y, x]
+                planeW[newImageY, newImageX] = imagePixel
+
+    #cv2.imwrite("./" + nombreImagen, planeW)
+    #print("Mapeo bilineal guardado en: {0}".format("/." + nombreImagen))
+
+    return planeW
+
+"""
+Recuperación de pixeles perdidos utilizando el inverso 
+"""
+def fillMissingPixelsInverse(targetImage, referenceImage, a, b, c, d):
+
+    (referenceH, referenceW) = referenceImage.shape[:2]
+    
+    #(ZPlaneW, ZplaneH, ZplaneXOffset, ZplaneYOffset) = getMapDimensions(referenceImage, a, b, c, d, 0)
+    (targetH, targetW) = targetImage.shape[:2]
+    
+    for y in range(targetH):
+        for x in range(targetW):
+
+            if ( (targetImage[y, x].all() == 0)):
+
+                (planarX, planarY) = pixelToPlane(targetH,targetW,x,y)
+
+                mapped = inverseMapping(a, b, c, d, complex(planarX, planarY))
+
+                realPartFromPoint = int(mapped.real)
+                imagPartFromPoint = int(mapped.imag)
+
+                (newImageX, newImageY) = planeToPixel(targetH,targetW,realPartFromPoint,imagPartFromPoint)
+
+                
+                (xInReferenceImage, yInReferenceImage) = (math.ceil(newImageX), math.ceil(newImageY))
+                
+                if ((0 <= xInReferenceImage < referenceW) and (0 <= yInReferenceImage < referenceH)):
+                    targetImage[y, x] = referenceImage[yInReferenceImage,xInReferenceImage]
+
+    return targetImage
+
+def transform(image, a, b):
+    img1 = bilinearMappingImg(image,a,b,0,1)
+    img2 = fillMissingPixelsInverse(img1,image, a, b, 0, 1)
+
+    #cv2.imshow("result", img2)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+
+    return img2
+
 def main():
 
-    dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, graphsPath]
+    """dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, graphsPath]
 
     for d in dirs:
         if(os.path.exists(d)):
@@ -393,78 +612,14 @@ def main():
     seventy()
 
     processSamples(0)
-    processSamples(1)
+    processSamples(1)"""
 
-    getBarGraphics()
+    getHuMoments()
 
-    getHistMeanVariance()
+    #getBarGraphics()
+
+    #getHistMeanVariance()
 
     return
 
 main()
-
-def fillBlackLines2(image, direction:int, lastY:int):
-    (h, w) = image.shape[:2]
-    if (direction == 0):
-        for y in range(h):
-            if(max(image[y, 0:w]) == 0):
-                image[y, 0:w] = 255
-                lastY = y
-
-        for y in range(0,int(int(h*0.1))):
-            if(sum(image[y, 0:w])/255 < 0.25*w):
-                image[y, 0:w] = 255
-                lastY = y
-
-        for y in range(int(h*0.85), h):
-            if(sum(image[y, 0:w])/255 < 0.25*w):
-                image[y, 0:w] = 255
-                lastY = y
-
-    else:
-        for x in range(w):
-            k = lastY
-            k+=1
-            if(k < h):
-                if(max(image[k:h, x]) == 0):
-                    image[k:h, x] = 255
-
-        for x in range(0,int(w*0.25)):
-            if(sum(image[0:h, x])/255 < 0.10*h):
-                image[0:h, x] = 255
-
-        for x in range(int(w*0.75), w):
-            if(sum(image[0:h, x])/255 < 0.10*h):
-                image[0:h, x] = 255
-
-    return image, lastY
-
-def a(img):
-    img2 = cv2.bitwise_not(img)
-    #showImage(img2, "og1")
-    
-
-    #"showImage(img2, "og1")
-    
-
-    contoursL = cv2.findContours(img2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    #"print("cnt", contoursL)
-
-    contours = contoursL[0] if len(contoursL) == 2 else contoursL[1]
-    big_contour = max(contours, key=cv2.contourArea)
-    
-    
-    #print(big_contour)
-
-
-    # draw largest contour as white filled on black background as mask
-    (h2, w2) = img2.shape[:2]
-    mask = np.zeros((h2, w2), dtype=np.uint8)
-    #showImage(mask, "mask1")
-    cv2.drawContours(mask, [big_contour], 0, 255, -1)
-    #showImage(mask, "mask2")
-
-    # use mask to black all but largest contour
-    result = img.copy()
-    result[mask==0] = 255
