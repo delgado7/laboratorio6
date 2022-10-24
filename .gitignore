@@ -132,3 +132,5 @@ samples/*
 discard/*
 results/*
 barGraphs/*
+huMomentsTables/*
+transformations/*

@@ -1,3 +1,4 @@
+from re import X
 from tokenize import group
 import cv2
 import numpy as np
@@ -7,6 +8,9 @@ import time
 import shutil
 import math
 from matplotlib import pyplot as plt
+import matplotlib.image as mpimg
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+
 
 white = [255, 255, 255]
 black = [0, 0, 0]
@@ -31,6 +35,8 @@ ninesPath = "./results/nines/"
 
 graphsPath = "./barGraphs/"
 
+transformationsPath = "./transformations/"
+huMomentsTablesPath = "./huMomentsTables/"
 entries = []
 
 def getImageFiles(path):
@@ -140,30 +146,19 @@ def preprocessing(img, group, number):
     closing = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
     #img_dilation = cv2.dilate(img, kernel, iterations=1)
 
-    img2 = cv2.bitwise_not(closing)
-    #showImage(img2, "og1")
-    
-
-    #"showImage(img2, "og1")
-    
+    img2 = cv2.bitwise_not(closing)    
 
     contoursL = cv2.findContours(img2, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    #"print("cnt", contoursL)
 
     contours = contoursL[0] if len(contoursL) == 2 else contoursL[1]
     big_contour = max(contours, key=cv2.contourArea)
     
-    
-    #print(big_contour)
-
 
     # draw largest contour as white filled on black background as mask
     (h2, w2) = img2.shape[:2]
     mask = np.zeros((h2, w2), dtype=np.uint8)
-    #showImage(mask, "mask1")
+    
     cv2.drawContours(mask, [big_contour], 0, 255, -1)
-    #showImage(mask, "mask2")
 
     # use mask to black all but largest contour
     result = img.copy()
@@ -189,8 +184,6 @@ def processSamples(groupId):
     else:
         groupB = getImageFiles("./groupB/")
     
-    #print(groupA)
-    #print(groupB)
     groupAPaths = [zeroesPath, onesPath, twosPath, threesPath, foursPath]
     groupBPaths = [fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
 
@@ -226,7 +219,7 @@ def processSamples(groupId):
             #kernel = np.ones((1,1), np.uint8)
             #crop_img = cv2.morphologyEx(crop_img, cv2.MORPH_CLOSE, kernel)
             groupCounts[groupId][l] = extractIndividualNumbers(crop_img, groupPaths[groupId][l], groupCounts[groupId][l], groupId, l)
-            #print(groupACounts[l], " ", groupAPaths[l])
+            
             excessB += excess
             moveB += move
 
@@ -339,8 +332,6 @@ def center(image):
 
     upper, lower, left, right = getImageLimits(image, 0)
 
-    #print(upper, lower, left, right)
-
     img_crp = image[upper:lower, left:right]
 
     bordersize = 10
@@ -349,10 +340,6 @@ def center(image):
     img_crp = cv2.resize(img_crp, (60, 64))
     img_crp = cv2.threshold(img_crp, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_TRIANGLE)[1]
 
-    #img_crp = cv2.blur(img_crp,(5,5))
-
-    #kernel = np.ones((5,5), np.uint8)
-    #img_crp = cv2.dilate(img_crp, kernel, iterations=1)
 
     return img_crp
 
@@ -403,7 +390,7 @@ def getHuMoments():
         for s in range(0,7):
             huMoments[s] = round(-1* math.copysign(1.0, huMoments[s]) * math.log10(abs(huMoments[s])), 6)
 
-        getHuMomentsVariations(image, huMoments, i)
+        getHuMomentsVariations(image, huMoments, i, paths[i]+imageName)
         
         HuMoments.append(huMoments.flatten())
 
@@ -426,12 +413,11 @@ def getHuMoments():
     the_table.auto_set_font_size(False)
     the_table.set_fontsize(6)
     plt.axis('off')
-    plt.savefig("./HuMoments"+".png", dpi=400)
-    #plt.show()
+    plt.savefig(huMomentsTablesPath+"/HuMoments"+".png", dpi=400)
 
 
-def getHuMomentsVariations(image, huMomentsImage, i):
-    plt.clf()
+
+def getHuMomentsVariations(image, huMomentsImage, i, imagePath):
     row_headers = ["Original", "Rotación", "Desplazamiento", "Amplificada", "Reducida"]
     column_headers = ["H[{0}]".format(i) for i in range(7)]
 
@@ -441,44 +427,50 @@ def getHuMomentsVariations(image, huMomentsImage, i):
     a = complex(1.3, 0)
     b = complex(0,0)
     img_amplificada = transform(image, a, b)
-    #cv2.imwrite("./amplificada{0}.png".format(i), img_amplificada)
+    cv2.imwrite(transformationsPath+"/amplificada{0}.png".format(i), img_amplificada)
 
     img_amplificada = cv2.cvtColor(img_amplificada, cv2.COLOR_BGR2GRAY)
     moments = cv2.moments(img_amplificada)
     huMoments = cv2.HuMoments(moments)
     huMomentsVariation.append(getMoments(huMoments).flatten())
     
+    img_amp = mpimg.imread(transformationsPath+"/amplificada{0}.png".format(i), cv2.IMREAD_GRAYSCALE)
+
+    
     a = complex(0.6, 0)
     img_disminuida = transform(image, a, b)
-    #cv2.imwrite("./disminuida{0}.png".format(i), img_disminuida)
+    cv2.imwrite(transformationsPath+"/disminuida{0}.png".format(i), img_disminuida)
 
     img_disminuida = cv2.cvtColor(img_disminuida, cv2.COLOR_BGR2GRAY)
     moments = cv2.moments(img_disminuida)
     huMoments = cv2.HuMoments(moments)
     huMomentsVariation.append(getMoments(huMoments).flatten())
-
+    
+    img_dim = mpimg.imread(transformationsPath+"/disminuida{0}.png".format(i))
 
     a = complex(0.8, 0.6)
     b = complex(0, 0)
     img_rotada = transform(image, a, b)
-    #cv2.imwrite("./rotada{0}.png".format(i), img_rotada)
+    cv2.imwrite(transformationsPath+"/rotada{0}.png".format(i), img_rotada)
 
     img_rotada = cv2.cvtColor(img_rotada, cv2.COLOR_BGR2GRAY)
     moments = cv2.moments(img_rotada)
     huMoments = cv2.HuMoments(moments)
     huMomentsVariation.append(getMoments(huMoments).flatten())
 
+    img_rot = mpimg.imread(transformationsPath+"/rotada{0}.png".format(i))
 
     a = complex(1, 0)
     b = complex(8, 8)
     img_desplazada = transform(image, a, b)
-    #cv2.imwrite("./desplazada{0}.png".format(i), img_desplazada)
+    cv2.imwrite(transformationsPath+"/desplazada{0}.png".format(i), img_desplazada)
 
     img_desplazada = cv2.cvtColor(img_desplazada, cv2.COLOR_BGR2GRAY)
     moments = cv2.moments(img_desplazada)
     huMoments = cv2.HuMoments(moments)
     huMomentsVariation.append(getMoments(huMoments).flatten())
-    
+
+    img_des = mpimg.imread(transformationsPath+"/desplazada{0}.png".format(i))
 
     rcolors = plt.cm.BuPu(np.full(len(row_headers), 0.1))
     ccolors = plt.cm.BuPu(np.full(len(column_headers), 0.1))
@@ -489,12 +481,35 @@ def getHuMomentsVariations(image, huMomentsImage, i):
                         rowLoc='right',
                         colColours=ccolors,
                         colLabels=column_headers,
-                        loc='center left')
+                        loc='center right')    
 
+    (h,w) = image.shape[:2]
+    dim = (math.trunc(h*3.5)-8, math.trunc(w*3.5))
+
+  
+    image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+    img_rot = cv2.resize(img_rot, dim, interpolation = cv2.INTER_AREA)
+    img_des = cv2.resize(img_des, dim, interpolation = cv2.INTER_AREA)
+    img_amp = cv2.resize(img_amp, dim, interpolation = cv2.INTER_AREA)
+    img_dim = cv2.resize(img_dim, dim, interpolation = cv2.INTER_AREA)
+
+    plt.figimage(image, 657, 1430, zorder=3, cmap='gist_gray')
+    plt.figimage(img_rot, 657, 1135, zorder=3)
+    plt.figimage(img_des, 657, 837, zorder=3)
+    plt.figimage(img_amp, 657, 540, zorder=3)
+    plt.figimage(img_dim, 657, 247, zorder=3)
+
+    cellDict = the_table.get_celld()
+    for a in range(0,len(column_headers)):
+        cellDict[(0,a)].set_width(.1)
+        for b in range(1,len(huMomentsVariation)+1):
+            cellDict[(b,a)].set_height(0.2)
+            cellDict[(b,a)].set_width(0.1)
     the_table.auto_set_font_size(False)
-    the_table.set_fontsize(6)
+    the_table.set_fontsize(4)
+    
     plt.axis('off')
-    plt.savefig("./HuMomentsVariation{0}".format(i) + ".png", dpi=400)
+    plt.savefig(huMomentsTablesPath+"/HuMomentsVariation{0}".format(i) + ".png", dpi=400)
     
 
 def getMoments(huMoments):
@@ -521,9 +536,6 @@ def inverseMapping(a, b, c, d, w):
     return z1
 
 def bilinearMappingImg(image, a, b, c, d):
-
-    #(ZPlaneW, ZplaneH, ZplaneXOffset, ZplaneYOffset) = getMapDimensions(image, a, b, c, d, 0)
-    
     (h, w) = image.shape[:2]
 
     (planeWHeight, planeWWidth) = (h, w)
@@ -545,16 +557,8 @@ def bilinearMappingImg(image, a, b, c, d):
             
 
             if (newImageX >= 0 and newImageX < planeWWidth and newImageY >= 0 and newImageY < planeWHeight):
-                """
-                print(x,y)
-                print(mapped)
-                print(newImageX, newImageY)
-                """
                 imagePixel = image[y, x]
                 planeW[newImageY, newImageX] = imagePixel
-
-    #cv2.imwrite("./" + nombreImagen, planeW)
-    #print("Mapeo bilineal guardado en: {0}".format("/." + nombreImagen))
 
     return planeW
 
@@ -594,15 +598,11 @@ def transform(image, a, b):
     img1 = bilinearMappingImg(image,a,b,0,1)
     img2 = fillMissingPixelsInverse(img1,image, a, b, 0, 1)
 
-    #cv2.imshow("result", img2)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
-
     return img2
 
 def main():
 
-    """dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, graphsPath]
+    dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, graphsPath, transformationsPath, huMomentsTablesPath]
 
     for d in dirs:
         if(os.path.exists(d)):
@@ -612,7 +612,7 @@ def main():
     seventy()
 
     processSamples(0)
-    processSamples(1)"""
+    processSamples(1)
 
     getHuMoments()
 
