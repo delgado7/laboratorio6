@@ -22,6 +22,8 @@ ninesPath = "./results/nines/"
 
 thirties = []
 
+seventies = []
+
 dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath]
 
 def verticalHistogram(image, clusterQuantity):
@@ -70,34 +72,62 @@ def generateHistogram(image):
 
     return histogram
 
+def generateHuMoments(image):
+
+    moments = cv2.moments(image)
+    huMoments = cv2.HuMoments(moments)
+        
+    for s in range(0,7):
+        huMoments[s] = round(-1* math.copysign(1.0, huMoments[s]) * math.log10(abs(huMoments[s])), 6)
+
+    return numpy.resize(huMoments, (7))
+
 def processNumbers(bottomLimit, topLimit):
 
     realCounters = numpy.zeros((10))
     predictedCounters = numpy.zeros((10))
+    falsePositives = numpy.zeros((10))
 
     for route in dirs:
-        for num in thirties:
-            realCounters[dirs.index(route)] += 1
+        for num in seventies:
+            
+            pathImage = str(route+num)
+            if os.path.exists(pathImage):
+                grayImage = cv2.imread(pathImage, cv2.IMREAD_GRAYSCALE)
 
-            path = str(route+num)
-            grayImage = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+                """histogram = generateHuMoments(grayImage)
 
-            histogram = generateHistogram(grayImage)
+                falseValues = []
+                booleanValues = []
 
-            falseValues = []
-            booleanValues = []
+                for count in range(10):
+                    booleanValues.append(numpy.sort(numpy.logical_and(histogram >= bottomLimit[count], histogram <= topLimit[count])))
 
-            for count in range(10):
-                booleanValues.append(numpy.sort(numpy.logical_and(histogram >= bottomLimit[count], histogram <= topLimit[count])))
+                for isNum in booleanValues:
+                    _, counts = numpy.unique(isNum, return_counts=True)
+                    falseValues.append(counts[0])
 
-            for isNum in booleanValues:
-                _, counts = numpy.unique(isNum, return_counts=True)
-                falseValues.append(counts[0])
+                if dirs.index(route) == falseValues.index(min(falseValues)): predictedCounters[dirs.index(route)] += 1"""
+            
+                realCounters[dirs.index(route)] += 1
+                huMoments = generateHuMoments(grayImage)
+                
+                falseValues = []
+                booleanValues = []
 
-            if dirs.index(route) == falseValues.index(min(falseValues)): predictedCounters[dirs.index(route)] += 1
+                for count in range(10):
+                    booleanValues.append(numpy.sort(numpy.logical_and(huMoments >= bottomLimit[count], huMoments <= topLimit[count])))
+
+                for isNum in booleanValues:
+                    _, counts = numpy.unique(isNum, return_counts=True)
+                    falseValues.append(counts[0])
+
+                if dirs.index(route) == falseValues.index(min(falseValues)): predictedCounters[dirs.index(route)] += 1
+                else: falsePositives[falseValues.index(min(falseValues))] += 1
     
     print(realCounters)
     print(predictedCounters)
+    print(falsePositives)
     
 
 def thirty():
@@ -113,6 +143,21 @@ def thirty():
             toBeAdded = str(random.randint(0,764))+".png"
             if toBeAdded not in training and toBeAdded not in thirties:
                 thirties.append(toBeAdded)
+                chosen = True 
+
+def seventy():
+    file = open(r"set_entrenamiento.txt", "r")
+    training = file.readline()
+    file.close()
+
+    training = ast.literal_eval(training)
+
+    for i in range(500):
+        chosen = False
+        while not chosen:
+            toBeAdded = str(random.randint(0,713))+".png"
+            if toBeAdded not in training and toBeAdded not in seventies:
+                seventies.append(toBeAdded)
                 chosen = True 
     
 def getModel(modelName):
@@ -134,10 +179,11 @@ def main():
 
     model = getModel("modelo.txt")
 
-    bottomLimits = getBottomLimits(model, 0.95)
-    topLimits = getTopLimits(model, 0.95)
+    bottomLimits = getBottomLimits(model, 0.79)
+    topLimits = getTopLimits(model, 0.79)
 
-    thirty()
+    #thirty()
+    seventy()
 
     processNumbers(bottomLimits, topLimits)
 

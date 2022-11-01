@@ -22,6 +22,12 @@ varianceVecs = [] # Lista que contiene las varianzas de cada grupo de píxeles t
 
 HuMoments = []
 
+# Variable momentos Hu para el calculo del modelo
+modelHuMoments = [[], [], [], [], [], [], [], [], [], []]
+
+meanVecsHu = []
+varianceVecsHu = []
+
 zeroesPath = "./results/zeroes/"
 onesPath = "./results/ones/"
 twosPath = "./results/twos/"
@@ -53,8 +59,10 @@ def saveImage(image, path, name, num, group):
     imageName = str(name)+".png"
 
     if imageName in entries:
-        histogram = generateHistogram(image)
-        histograms[5*group+num].append(histogram)
+        #histogram = generateHistogram(image)
+        #histograms[5*group+num].append(histogram)
+        huMoments = generateHuMoments(image)
+        modelHuMoments[5*group+num].append(huMoments)
     
     cv2.imwrite(path+imageName, image)
 
@@ -363,11 +371,44 @@ def getHistMeanVariance():
     file.write(str([meanVecs]+[varianceVecs]))
     file.close()
 
+# Función que procesa todos los momentos hu de entrenamiento y calcula su media y varianza
+def getHuMeanVariance():
+    for i in range(10):
+        meanVec = np.array(modelHuMoments[i])
+        varianceVec = np.array(modelHuMoments[i])
+
+        meanVec = np.transpose(meanVec)
+        meanVec = np.mean(meanVec, 1)
+        meanVec = np.ndarray.tolist(meanVec)
+        meanVecsHu.append(meanVec)
+
+        varianceVec = np.transpose(varianceVec)
+        varianceVec = np.var(varianceVec, 1)
+        varianceVec = np.ndarray.tolist(varianceVec)
+        varianceVecsHu.append(varianceVec)
+
+    file = open("modelo.txt", "w")
+    file.write(str([meanVecsHu]+[varianceVecsHu]))
+    file.close()
+
 def seventy():
     for i in range(534):
         chosen = False
         while not chosen:
             toBeAdded = str(random.randint(0,764))+".png"
+            if toBeAdded not in entries:
+                entries.append(toBeAdded)
+                chosen = True
+    
+    file = open("set_entrenamiento.txt", "w")
+    file.write(str(entries))
+    file.close()
+
+def thirty():
+    for i in range(214):
+        chosen = False
+        while not chosen:
+            toBeAdded = str(random.randint(0,713))+".png"
             if toBeAdded not in entries:
                 entries.append(toBeAdded)
                 chosen = True
@@ -554,8 +595,6 @@ def bilinearMappingImg(image, a, b, c, d):
 
             (newImageX, newImageY) = planeToPixel(planeWHeight,planeWWidth,realPartFromPoint,imagPartFromPoint)
 
-            
-
             if (newImageX >= 0 and newImageX < planeWWidth and newImageY >= 0 and newImageY < planeWHeight):
                 imagePixel = image[y, x]
                 planeW[newImageY, newImageX] = imagePixel
@@ -600,6 +639,17 @@ def transform(image, a, b):
 
     return img2
 
+# Función que retorna el vector de momentos hu de una imagen
+def generateHuMoments(image):
+
+    moments = cv2.moments(image)
+    huMoments = cv2.HuMoments(moments)
+        
+    for s in range(0,7):
+        huMoments[s] = round(-1* math.copysign(1.0, huMoments[s]) * math.log10(abs(huMoments[s])), 6)
+
+    return np.resize(huMoments, (7))
+
 def main():
 
     dirs = [zeroesPath, onesPath, twosPath, threesPath, foursPath, fivesPath, sixesPath, sevensPath, eightsPath, ninesPath, graphsPath, transformationsPath, huMomentsTablesPath]
@@ -609,7 +659,8 @@ def main():
             shutil.rmtree(d)
         os.makedirs(d)
 
-    seventy()
+    #seventy()
+    thirty()
 
     processSamples(0)
     processSamples(1)
@@ -618,7 +669,7 @@ def main():
 
     #getBarGraphics()
 
-    #getHistMeanVariance()
+    getHuMeanVariance()
 
     return
 
