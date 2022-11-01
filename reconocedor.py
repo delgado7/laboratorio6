@@ -128,7 +128,28 @@ def processNumbers(bottomLimit, topLimit):
     print(realCounters)
     print(predictedCounters)
     print(falsePositives)
+
+# Método solicitado en la especificación de la tarea
+def recognizeNumber(bottomLimit, topLimit, pathImage): 
+    if os.path.exists(pathImage):
+        grayImage = cv2.imread(pathImage, cv2.IMREAD_GRAYSCALE)
     
+        huMoments = generateHuMoments(grayImage)
+        
+        falseValues = []
+        booleanValues = []
+
+        for count in range(10):
+            booleanValues.append(numpy.sort(numpy.logical_and(huMoments >= bottomLimit[count], huMoments <= topLimit[count])))
+
+        for isNum in booleanValues:
+            _, counts = numpy.unique(isNum, return_counts=True)
+            falseValues.append(counts[0])
+
+        print("El número corresponde a: " + str(falseValues.index(min(falseValues))))
+    else:
+        print("Ruta de la imagen no existe en el sistema")
+        exit(-1)
 
 def thirty():
     file = open(r"set_entrenamiento.txt", "r")
@@ -176,16 +197,20 @@ def getTopLimits(model, scale):
     return model[0] + numpy.power(model[1], 1/2) * scale # model[0] = meanVec, model[1] = varianceVec
 
 def main():
-
     model = getModel("modelo.txt")
 
     bottomLimits = getBottomLimits(model, 0.79)
     topLimits = getTopLimits(model, 0.79)
 
-    #thirty()
-    seventy()
+    imagePath = input("Digite la ruta de la imagen a analizar: ")
 
-    processNumbers(bottomLimits, topLimits)
+    recognizeNumber(bottomLimits, topLimits, imagePath) # Solo reconoce imagenes preprocesadas anteriormente
+
+    #thirty() # Utilizado para probar utilizando varias imagenes para histogramas
+    #seventy() # Utilizado para probar utilizando varias imagenes para momentos Hu
+
+    #processNumbers(bottomLimits, topLimits) # Procesar múltiples imagenes distintas a las utilizas para generar el modelo
+
 
 main()
 
